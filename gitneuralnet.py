@@ -102,5 +102,5 @@ def testing():
            print('\n\n')
 
 
-gradientDescent()
+#gradientDescent()
 testing()
