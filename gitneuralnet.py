@@ -114,7 +114,8 @@ myneuralnet = NeuralNetwork()
 myneuralnet.initialise_hidden_layers()
 myneuralnet.initialise_weights_and_biases()
 
-for epoch in range(3):
+num_epochs = int(input('Set number of epochs: ')
+for epoch in range(epochs):
    print(f'Epoch {epoch + 1}')
    myneuralnet.gradientDescent()
   
