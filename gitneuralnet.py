@@ -72,7 +72,20 @@ class NeuralNetwork:
       self.weights[i] -= self.learning_rate * weight_step[i]
       self.biases[i] -= self.learning_rate * bias_step[i]
 
+  def shuffle_training_data(self):
+      samples = np.transpose(self.training_data)
+      labels = self.training_labels
+      
+      combined = list(zip(samples, labels))
+      np.random.shuffle(combined)
+      shuffled_samples, shuffled_labels = zip(*combined)
+
+      self.training_data = np.transpose(np.array(shuffled_samples))
+      self.training_labels = np.array(shuffled_labels)
+  
   def gradientDescent(self):
+      self.shuffle_training_data()
+
       for i in range(self.training_data.shape[1]):
           training_drawing = self.training_data[:, i]
           result = self.forwardPass(training_drawing)
