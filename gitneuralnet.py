@@ -104,7 +104,7 @@ class NeuralNetwork:
           count += 1
           j += 1
           if j % 10 == 0:
-            print(self.forwardPass(test_drawing)[0], self.testing_labels[i])
+            print(f'Prediction: {self.forwardPass(test_drawing)[0]} | Label: {self.testing_labels[i]}')
             print(correct / count)
             print('\n\n')
 
@@ -114,7 +114,8 @@ myneuralnet = NeuralNetwork()
 myneuralnet.initialise_hidden_layers()
 myneuralnet.initialise_weights_and_biases()
 
-for epoch in range(3):
+num_epochs = int(input('Set number of epochs: '))
+for epoch in range(num_epochs):
    print(f'Epoch {epoch + 1}')
    myneuralnet.gradientDescent()
   
