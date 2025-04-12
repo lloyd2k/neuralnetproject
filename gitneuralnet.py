@@ -2,105 +2,107 @@ import numpy as np
 import idx2numpy
 
 
-training_data = idx2numpy.convert_from_file('train-images.idx3-ubyte').astype('float32') / 255.0
-training_data = np.transpose(training_data.reshape(training_data.shape[0], -1))
-testing_data = idx2numpy.convert_from_file('t10k-images.idx3-ubyte').astype('float32') / 255.0
-testing_data = np.transpose(testing_data.reshape(testing_data.shape[0], -1))
+class NeuralNetwork:
+    
+  def __init__(self):
+    
+    self.training_data = idx2numpy.convert_from_file('train-images.idx3-ubyte').astype('float32') / 255.0
+    self.training_data = np.transpose(self.training_data.reshape(self.training_data.shape[0], -1))
+    self.testing_data = idx2numpy.convert_from_file('t10k-images.idx3-ubyte').astype('float32') / 255.0
+    self.testing_data = np.transpose(self.testing_data.reshape(self.testing_data.shape[0], -1))
 
-training_labels = idx2numpy.convert_from_file('train-labels.idx1-ubyte')
-testing_labels = idx2numpy.convert_from_file('t10k-labels.idx1-ubyte')
+    self.training_labels = idx2numpy.convert_from_file('train-labels.idx1-ubyte')
+    self.testing_labels = idx2numpy.convert_from_file('t10k-labels.idx1-ubyte')
+    
+    self.layers = []
+    self.activations = []
 
-weights = [
-    np.random.randn(16,784), # w[0]
-    np.random.randn(16,16), # w[1]
-    np.random.randn(10,16) # w[2]
-]
+    self.weights = []
+    self.biases = []
 
-biases = [
-    np.random.randn(16), # b[0]
-    np.random.randn(16), # b[1]
-    np.random.randn(10) # b[2]
-]
+    self.learning_rate = 0.01
 
-learning_rate = 0.01
+  def initialise_hidden_layers(self):
+    num_layers = int(input('Enter number of hidden layers: '))
+    for i in range(num_layers):
+      self.layers.append(int(input(f'Enter number of neurons for hidden layer {i+1}: ')))
 
+  def initialise_weights_and_biases(self):
+      self.weights = [np.random.randn(self.layers[0], 784)]
+      for i in range(len(self.layers)-1):
+          self.weights.append(np.random.randn(self.layers[i+1],self.layers[i]))
+      self.weights.append(np.random.randn(10,self.layers[-1]))
 
-def sigmoid(x):
-     output = 1/(1+np.exp(-x))
-     return output
+      for i in self.layers:
+          self.biases.append(np.random.randn(i))
+      self.biases.append(np.random.randn(10))
 
+  def sigmoid(self, x):
+    output = 1/(1+np.exp(-x))
+    return output
 
-def forwardPass(pixels):
-    z1 = np.dot(weights[0], pixels) + biases[0]
-    a1 = sigmoid(z1)
-
-    z2 = np.dot(weights[1], a1) + biases[1]
-    a2 = sigmoid(z2)
-
-    z3 = np.dot(weights[2], a2) + biases[2]
-    a3 = sigmoid(z3)
-
-    prediction = np.argmax(a3)
-
-    return a3, a2, a1, prediction
-
-
-def backprop(pixels, y, a3, a2, a1):
-    weight_step = [0,0,0]
-    bias_step = [0,0,0]
-
-    da3 = 2 * (a3 - y) * a3 * (np.ones_like(a3)- a3)
-#   cost = (a3 - y) ** 2
-#   cost_mean = np.mean(cost)
-    weight_step[2] = np.dot(da3.reshape(10, 1),a2.reshape(1, -1))
-
-    bias_step[2] = da3
-
-    da2 = np.dot(np.transpose(weights[2]), da3)
-    n2 = da2 * a2 * (np.ones_like(a2) - a2)
-    weight_step[1] = np.dot(n2.reshape(16, 1), a1.reshape(1, -1))
-
-    bias_step[1] = n2
-
-    da1 = np.dot(np.transpose(weights[1]), da2)
-    n1 = da1 * a1 * (np.ones_like(a1)- a1)
-    weight_step[0] = np.dot(n1.reshape(16, 1), pixels.reshape(1, -1))
-
-    bias_step[0] = n1
-
-    weights[2] -= learning_rate * weight_step[2]
-    weights[1] -= learning_rate * weight_step[1]
-    weights[0] -= learning_rate * weight_step[0]
-
-    biases[2] -= learning_rate * bias_step[2]
-    biases[1] -= learning_rate * bias_step[1]
-    biases[0] -= learning_rate * bias_step[0]
+  def forwardPass(self, pixels):
+      a = [pixels]
+      for i in range(len(self.layers) + 1):
+        z = np.dot(self.weights[i], a[i]) + self.biases[i]
+        a.append(self.sigmoid(z))
+      
+      prediction = np.argmax(a[-1])
+      return prediction, a
 
 
-def gradientDescent():
-    for i in range(training_data.shape[1]):
-        training_drawing = training_data[:, i]
-        forwardPass(training_drawing)
-        y = np.zeros(10)
-        y[training_labels[i]] = 1
-        backprop(training_drawing, y, forwardPass(training_drawing)[0], forwardPass(training_drawing)[1], forwardPass(training_drawing)[2])
+  def backprop(self, y, a):
+    weight_step = []
+    bias_step = []
+
+    delta = 2 * (a[-1] - y) * a[-1] * (1 - a[-1])
+    weight_step_1 = np.dot(delta.reshape(10, 1), a[-2].reshape(1, -1))
+    weight_step.insert(0, weight_step_1)
+
+    bias_step.insert(0, delta)
+
+    for i in range(len(self.layers)):
+      z_index = -(2 + i)
+      delta = np.dot(np.transpose(self.weights[z_index + 1]), delta) * a[z_index] * (1 - a[z_index])
+
+      weight_step.insert(0, np.dot(delta.reshape(-1, 1), a[z_index - 1].reshape(1, -1)))
+      bias_step.insert(0, delta)
+    
+    for i in range(len(self.weights)):
+      self.weights[i] -= self.learning_rate * weight_step[i]
+      self.biases[i] -= self.learning_rate * bias_step[i]
+
+  def gradientDescent(self):
+      for i in range(self.training_data.shape[1]):
+          training_drawing = self.training_data[:, i]
+          result = self.forwardPass(training_drawing)
+          y = np.zeros(10)
+          y[self.training_labels[i]] = 1
+          self.backprop(y, result[1])
+
+  def testing(self):
+      j = 0
+      correct = 0
+      count = 0
+      for i in range(self.testing_data.shape[1]):
+          test_drawing = self.testing_data[:, i]
+          if self.forwardPass(test_drawing)[0] == self.testing_labels[i]:
+              correct+= 1
+          count += 1
+          j += 1
+          if j % 10 == 0:
+            print(self.forwardPass(test_drawing)[0], self.testing_labels[i])
+            print(correct / count)
+            print('\n\n')
 
 
-def testing():
-    j = 0
-    correct = 0
-    count = 0
-    for i in range(testing_data.shape[1]):
-        test_drawing = testing_data[:, i]
-        if forwardPass(test_drawing)[3] == testing_labels[i]:
-            correct+= 1
-        count += 1
-        j += 1
-        if j % 10 == 0:
-           print(forwardPass(test_drawing)[3], testing_labels[i])
-           print(correct / count)
-           print('\n\n')
+myneuralnet = NeuralNetwork()
 
+myneuralnet.initialise_hidden_layers()
+myneuralnet.initialise_weights_and_biases()
 
-gradientDescent()
-testing()
+for epoch in range(3):
+   print(f'Epoch {epoch + 1}')
+   myneuralnet.gradientDescent()
+  
+myneuralnet.testing()
