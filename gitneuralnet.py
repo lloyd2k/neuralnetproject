@@ -120,3 +120,5 @@ for epoch in range(num_epochs):
    myneuralnet.gradientDescent()
   
 myneuralnet.testing()
+
+# This is my neural network
