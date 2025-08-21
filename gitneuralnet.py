@@ -90,10 +90,10 @@ class NeuralNetwork:
       self.layers.append(int(input(f'Enter number of neurons for hidden layer {i+1}: ')))
 
   def initialise_weights_and_biases(self):
-      self.weights = [np.random.randn(self.layers[0], 784)]
+      self.weights = [np.random.randn(self.layers[0], 784) * 0.01]
       for i in range(len(self.layers)-1):
-          self.weights.append(np.random.randn(self.layers[i+1],self.layers[i]))
-      self.weights.append(np.random.randn(10, self.layers[-1]))
+          self.weights.append(np.random.randn(self.layers[i+1],self.layers[i]) * 0.01)
+      self.weights.append(np.random.randn(10, self.layers[-1]) * 0.01)
 
       for i in self.layers:
           self.biases.append(np.random.randn(i))
@@ -177,7 +177,7 @@ class NeuralNetwork:
             print('\n\n')
 
 
-myneuralnet = NeuralNetwork(Sigmoid())
+myneuralnet = NeuralNetwork(LeakyRelu())
 
 myneuralnet.initialise_hidden_layers()
 myneuralnet.initialise_weights_and_biases()
