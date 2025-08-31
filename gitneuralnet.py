@@ -5,45 +5,27 @@ import os
 data_dir = os.path.dirname(os.path.abspath(__file__))
 
 class Sigmoid:
-  def __call__(self, x):
-    return 1/(1+np.exp(-x))
-  
-  def derivative(self, x):
-    return self(x) * (1 - self(x))
-  
+  def __call__(self, x): return 1/(1+np.exp(-x))
+  def derivative(self, x): return self(x) * (1 - self(x))
+    
 class Relu:
-   def __call__(self, x):
-      return np.maximum(0, x)
-   
-   def derivative(self, x):
-      return (x > 0).astype(float)
-
+   def __call__(self, x): return np.maximum(0, x)
+   def derivative(self, x): return (x > 0).astype(float)
+    
 class Tanh:
-   def __call__(self, x):
-      return (np.exp(x)-np.exp(-x))/(np.exp(x)+np.exp(-x))
-   
-   def derivative(self, x):
-      return 1 - self(x)**2
-   
+   def __call__(self, x): return (np.exp(x)-np.exp(-x))/(np.exp(x)+np.exp(-x))
+   def derivative(self, x): return 1 - self(x)**2
+       
 class LeakyRelu:
-   def __call__(self, x):
-      return np.where(x >= 0, x, x * 0.01)
-   
-   def derivative(self, x):
-      return np.where(x >= 0, 1, 0.01)
-   
+   def __call__(self, x): return np.where(x >= 0, x, x * 0.01)
+   def derivative(self, x): return np.where(x >= 0, 1, 0.01)
+      
 class Elu:
-   def __call__(self, x):
-      return np.where(x > 0, x, np.exp(x) - 1)
-   
-   def derivative(self, x):
-      return np.where(x > 0, 1, np.exp(x))
-
+   def __call__(self, x): return np.where(x > 0, x, np.exp(x) - 1)
+   def derivative(self, x): return np.where(x > 0, 1, np.exp(x))
+    
 class Silu:
-   def __call__(self, x):
-      s = 1/(1+np.exp(-x))
-      return x * s
-   
+   def __call__(self, x): return x/(1+np.exp(-x))
    def derivative(self, x):
       s = 1/(1+np.exp(-x))
       return s + x * s * (1 - s)
@@ -53,9 +35,81 @@ def softmax(x):
    return e_x / np.sum(e_x)
 
 
+class Normal:
+   def __call__(self, layers):
+      weights = [np.random.randn(layers[0], 784)]
+      for i in range(len(layers)-1):
+          weights.append(np.random.randn(layers[i+1], layers[i]))
+      weights.append(np.random.randn(10, layers[-1]))
+
+      biases = []
+      for i in layers:
+          biases.append(np.zeros(i))
+      biases.append(np.zeros(10))   
+
+      return weights, biases   
+
+class Uniform:
+   def __call__(self, layers):
+      weights = [np.random.uniform(layers[0], 784)]
+      for i in range(len(layers)-1):
+          weights.append(np.random.uniform(layers[i+1], layers[i]))
+      weights.append(np.random.uniform(10, layers[-1]))
+
+      biases = []
+      for i in layers:
+          biases.append(np.zeros(i))
+      biases.append(np.zeros(10))   
+
+      return weights, biases      
+
+class Glorot:
+  def __call__(self, layers):
+      shape = (layers[0], 784)
+      expression = np.sqrt(6/(784+layers[0]))
+      weights = [np.random.uniform(expression*-1, expression, size=shape)]
+
+      for i in range(len(layers)-1):
+          shape = (layers[i+1], layers[i])
+          expression = np.sqrt(6/(layers[i]+layers[i+1]))
+          weights.append(np.random.uniform(expression*-1, expression, size=shape))
+      shape = (10, layers[-1])
+      expression = np.sqrt(6/layers[-1]+10)
+      weights.append(np.random.uniform(expression*-1, expression, shape))
+
+      biases = []
+      for i in layers:
+        biases.append(np.zeros(i))
+      biases.append(np.zeros(10))
+
+      return weights, biases
+  
+class He:
+   def __call__(self, layers):
+      self.layers = [784] + self.layers + [10]
+      shape = (layers[0], 784)
+      sigma = np.sqrt(2/784)
+      weights = [np.random.normal(0, sigma, size=shape)]
+
+      for i in range(len(layers)-1):
+          shape = (layers[i+1], layers[i])
+          sigma = np.sqrt(2/layers[i])
+          weights.append(np.random.normal(0, sigma, size=shape))
+      shape = (10, layers[-1])
+      sigma = np.sqrt(2/layers[-1])     
+      weights.append(np.random.normal(0, sigma, size=shape))
+
+      biases = []
+      for i in layers:
+        biases.append(np.zeros(i))
+      biases.append(np.zeros(10))
+
+      return weights, biases      
+
+
 class NeuralNetwork:
     
-  def __init__(self, activation):
+  def __init__(self, activation, initialisation):
     
     self.training_data = idx2numpy.convert_from_file(
         os.path.join(data_dir, 'train-images.idx3-ubyte')
@@ -76,11 +130,10 @@ class NeuralNetwork:
     self.layers = []
     self.activations = []
 
-    self.weights = []
-    self.biases = []
-
     self.activate = activation
     self.derivative = activation.derivative
+
+    self.init = initialisation
 
     self.learning_rate = 0.01
 
@@ -88,6 +141,10 @@ class NeuralNetwork:
     num_layers = int(input('Enter number of hidden layers: '))
     for i in range(num_layers):
       self.layers.append(int(input(f'Enter number of neurons for hidden layer {i+1}: ')))
+
+      init = self.init(self.layers)
+      self.weights, self.biases = init[0], init[1]
+
 
   def initialise_weights_and_biases(self):
       self.weights = [np.random.randn(self.layers[0], 784) * 0.01]
@@ -177,16 +234,17 @@ class NeuralNetwork:
             print('\n\n')
 
 
-myneuralnet = NeuralNetwork(LeakyRelu())
+myneuralnet = NeuralNetwork(Sigmoid(), Normal())
 
 myneuralnet.initialise_hidden_layers()
-myneuralnet.initialise_weights_and_biases()
 
-num_epochs = int(input('Set number of epochs: '))
-for epoch in range(num_epochs):
-   print(f'Epoch {epoch + 1}')
-   myneuralnet.gradientDescent()
-  
+def run_epochs():
+  num_epochs = int(input('Set number of epochs: '))
+  for epoch in range(num_epochs):
+    print(f'Epoch {epoch + 1}')
+    myneuralnet.gradientDescent()
+
+run_epochs()
 myneuralnet.testing()
 
 # This is my neural network
