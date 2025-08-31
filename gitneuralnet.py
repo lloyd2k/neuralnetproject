@@ -98,11 +98,16 @@ class NeuralNetwork:
         layer_sizes = [784] + self.layers + [10]
         for i in range(len(layer_sizes) - 1):
             shape = (layer_sizes[i+1], layer_sizes[i])            
-            if self.init_method == "he":
+            if self.init_method == "he_n":
                 sigma = np.sqrt(2. / layer_sizes[i])
                 weight = np.random.normal(0, sigma, size=shape)
+            elif self.init_method == "he_u":
+                weight = np.random.uniform(-(np.sqrt(6/layer_sizes[i])), np.sqrt(6/layer_sizes[i+1]), size=shape)
             elif self.init_method == "xavier":
                 sigma = np.sqrt(2/(layer_sizes[i] + layer_sizes[i+1]))
+                weight = np.random.normal(0, sigma, size=shape)
+            elif self.init.method == "lecun":
+                sigma = 1/layer_sizes[i]
                 weight = np.random.normal(0, sigma, size=shape)
             else:
                 weight = np.random.randn(layer_sizes[i+1], layer_sizes[i]) * 0.01
