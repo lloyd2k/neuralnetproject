@@ -10,12 +10,14 @@ import numpy as np
 
 # Default experiment configurations
 experiments = [
-    {"activation": "relu", "init": "he"},
-    {"activation": "elu", "init": "he"},
-    {"activation": "leaky_relu", "init": "he"},
+    {"activation": "relu", "init": "he_n"},
+    {"activation": "relu", "init": "he_u"},
+    {"activation": "relu", "init": "xavier"},
+    # {"activation": "leaky_relu", "init": "he_n"},
     # {"activation": "tanh", "init": "xavier"},
+    # {"activation": "tanh", "init": "lecun"},
     # {"activation": "sigmoid", "init": "xavier"},
-    # {"activation": "silu", "init": "he"}
+    # {"acctivation": "silu", "init": "lecun"}
     ]
 
 results = {}
@@ -24,10 +26,10 @@ weight_distributions = {}
 # Run experiments
 for exp in experiments:
     print(f"Running {exp['activation']} with {exp['init']} init...")
-    nn = NeuralNetwork(hidden_layers=[64,32], learning_rate=0.01, batch_size=32,
+    nn = NeuralNetwork(hidden_layers=[128, 64], learning_rate=0.01, batch_size=32,
                        activation=exp['activation'], init_method=exp['init'])
     initial_weights = np.concatenate([w.flatten() for w in nn.weights])
-    nn.train(epochs=5)
+    nn.train(epochs=50)
     final_weights = np.concatenate([w.flatten() for w in nn.weights])
     results[(exp['activation'], exp['init'])] = (nn.training_losses, nn.validation_losses,
                                                nn.training_accuracies, nn.validation_accuracies, nn.gradient_norms)
